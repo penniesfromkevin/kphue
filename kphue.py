@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """My take on a Hue library.
 
-This code borrows somewhat from phue by Nathanaël Lécaudé.
+This code borrows a little from phue by Nathanaël Lécaudé.
 https://github.com/studioimaginaire/phue
 
 This software is provided under the MIT license (see LICENSE file).
@@ -9,9 +9,9 @@ This software is provided under the MIT license (see LICENSE file).
 "Hue Personal Wireless Lighting" is a trademark owned by
 Koninklijke Philips Electronics N.V.
 """
-__author__ = 'Kevin Park (penniesfromkevin at yahoo)'
+__author__ = 'Kevin Park (penniesfromkevin@yahoo)'
 __version__ = '0.1.3'
-__copyright__ = 'Copyright (c) 2014, Kevin'
+__copyright__ = 'Copyright (c) 2014, Kevin Park (penniesfromkevin@yahoo)'
 
 import collections
 import json
@@ -135,7 +135,7 @@ class Bridge(object):
         except KeyError:
             LOGGER.warning('Malformed file %s; try registering',
                     self.config_file)
-        if not (self.ip and self.user):
+        if not self.ip or not self.user:
             self.register()
 
     def refresh(self):
@@ -166,6 +166,7 @@ class Bridge(object):
         registration_request = {'devicetype': 'kphue'}
         data = json.dumps(registration_request)
         responses = self.request('POST', '/api', data)
+        LOGGER.debug('Responses: %s', responses)
         for response in responses:
             if 'success' in response:
                 LOGGER.info('Writing config file %s', self.config_file)
@@ -285,7 +286,7 @@ class Bridge(object):
         return return_status
 
     def get_group(self, *args):
-        """Returns a Group specified by name or ID.
+        """Returns a Group object specified by name or ID.
 
         Args:
             *args: Name (string) or ID (integer) to select.
@@ -301,7 +302,7 @@ class Bridge(object):
         return the_one
 
     def get_groups(self, *args):
-        """Returns a list of Groups specified by name or ID.
+        """Returns a list of Group objects specified by name or ID.
 
         Args:
             *args: List of names (string) or IDs (integer) to select.
@@ -329,7 +330,7 @@ class Bridge(object):
 
     # Lights ###########################################################
     def get_light(self, *args):
-        """Returns a Light specified by name or ID.
+        """Returns a Light object specified by name or ID.
 
         Args:
             *args: Name (string) or ID (integer) to select.
@@ -345,7 +346,7 @@ class Bridge(object):
         return the_one
 
     def get_lights(self, *args):
-        """Returns a list of Lights specified by name or ID.
+        """Returns a list of Light objects specified by name or ID.
 
         Args:
             *args: List of names (string) or IDs (integer) to select.
@@ -418,7 +419,7 @@ class Bridge(object):
         return return_status
 
     def get_rule(self, *args):
-        """Returns a Rule specified by name or ID.
+        """Returns a Rule object specified by name or ID.
 
         Args:
             *args: Name (string) or ID (integer) to select.
@@ -434,7 +435,7 @@ class Bridge(object):
         return the_one
 
     def get_rules(self, *args):
-        """Returns a list of Rules specified by name or ID.
+        """Returns a list of Rule objects specified by name or ID.
 
         Args:
             *args: List of names (string) or IDs (integer) to select.
@@ -470,19 +471,20 @@ class Bridge(object):
         """Refreshes the list of Rule objects.
         """
         responses = self.api_request('GET', 'rules/')
-        for id_string in responses:
-            res_id = int(id_string)
-            for rule in self.rules:
-                if rule.index == res_id:
-                    rule.refresh()
-                    res_id = None
-                    break
-            if res_id:
-                self.rules.append(Rule(self, res_id))
+        if 'error' not in responses:
+            for id_string in responses:
+                res_id = int(id_string)
+                for rule in self.rules:
+                    if rule.index == res_id:
+                        rule.refresh()
+                        res_id = None
+                        break
+                if res_id:
+                    self.rules.append(Rule(self, res_id))
 
     # Scenes ###########################################################
     def get_scene(self, *args):
-        """Returns a Scene specified by name or ID.
+        """Returns a Scene object specified by name or ID.
 
         Args:
             *args: Name (string) or ID (integer) to select.
@@ -498,7 +500,7 @@ class Bridge(object):
         return the_one
 
     def get_scenes(self, *args):
-        """Returns a list of Scenes specified by name or ID.
+        """Returns a list of Scene objects specified by name or ID.
 
         Args:
             *args: List of names (string) or IDs (integer) to select.
@@ -555,7 +557,7 @@ class Bridge(object):
         return new_id
 
     def get_schedule(self, *args):
-        """Returns a Schedule specified by name or ID.
+        """Returns a Schedule object specified by name or ID.
 
         Args:
             *args: Name (string) or ID (integer) to select.
@@ -571,7 +573,7 @@ class Bridge(object):
         return the_one
 
     def get_schedules(self, *args):
-        """Returns a list of Schedules specified by name or ID.
+        """Returns a list of Schedule objects specified by name or ID.
 
         Args:
             *args: List of names (string) or IDs (integer) to select.
@@ -641,7 +643,7 @@ class Bridge(object):
         return return_status
 
     def get_sensors(self, *args):
-        """Returns a Sensor specified by name or ID.
+        """Returns a Sensor object specified by name or ID.
 
         Args:
             *args: Name (string) or ID (integer) to select.
@@ -657,7 +659,7 @@ class Bridge(object):
         return the_one
 
     def get_sensors(self, *args):
-        """Returns a list of Sensors specified by name or ID.
+        """Returns a list of Sensor objects specified by name or ID.
 
         Args:
             *args: List of names (string) or IDs (integer) to select.
@@ -701,7 +703,7 @@ class HueResource(object):
         self.refresh()
 
     def __repr__(self):
-        """Like default python repr function, but add light name.
+        """Like default python repr function, but add object name.
 
         Returns:
             Object string representation.
@@ -711,7 +713,7 @@ class HueResource(object):
                 self.name, self.index, hex(id(self)))
 
     def refresh(self):
-        """Override this.
+        """Refreshes object attributes and state information.
         """
         LOGGER.debug('%s: Refreshing', self._identifier)
         self._state = self._bridge.api_request('GET', '%ss/%s' % (self._type,
@@ -741,15 +743,17 @@ class Luminous(HueResource):
         # "on" Boolean
         self.on = None
 
-        # Color modes: xy, ct, hs
-        self.xy = None
-        self.ct = None
-        self.hue = None
-        self.sat = None
         self.bri = None
+        # Internal value for previous brightness, to address a Hue bug
         self._bri = None
-        # added mode: value = tuple(r, g, b), 0 to 255
-        self.rgb = None
+
+        # Color modes: xy, ct, hs
+        #self.xy = None
+        #self.ct = None
+        #self.hue = None
+        #self.sat = None
+        # added mode: value = tuple(r, g, b) where r, g, b are 0 to 255
+        #self.rgb = None
 
         # Time in ds (0.1 seconds!)
         self.transitiontime = None
@@ -764,16 +768,17 @@ class Luminous(HueResource):
 
         self.effect = hue_decode(self._state[self._attr_key]['effect'])
 
-        self.rgb = None
+        if 'hue' in self._state[self._attr_key]:
+            self.rgb = None
 
-        self.ct = int(self._state[self._attr_key]['ct'])
+            self.ct = int(self._state[self._attr_key]['ct'])
 
-        self.hue = int(self._state[self._attr_key]['hue'])
-        self.sat = int(self._state[self._attr_key]['sat'])
-        self.bri = int(self._state[self._attr_key]['bri'])
+            self.hue = int(self._state[self._attr_key]['hue'])
+            self.sat = int(self._state[self._attr_key]['sat'])
+            self.bri = int(self._state[self._attr_key]['bri'])
 
-        self.xy = validate_xy(self._state[self._attr_key]['xy'])
-        self._state[self._attr_key]['xy'] = self.xy
+            self.xy = validate_xy(self._state[self._attr_key]['xy'])
+            self._state[self._attr_key]['xy'] = self.xy
 
     def turn_on(self):
         """Turns lights on.
@@ -793,16 +798,17 @@ class Luminous(HueResource):
         LOGGER.debug('Resetting %s resource %s', self._type, self.name)
         self.transitiontime = None
         self.effect = None
-        # Only the information for the selected colormode is needed.
-        #   http://www.developers.meethue.com/documentation/lights-api
-        # colormode is not set directly; follows priority xy > ct > hs.
-        # xy is default, but may it be more accurate to send hs-converted rgb?
-        self.rgb = None
-        rgb = [255, 255, 255]
-        self.ct = MIREDS_MIN
-        self.xy = rgb_to_xy(rgb)
-        self.hue, self.sat, self.bri = rgb_to_hsb(rgb)
         self.bri = BRI_MAX
+        if 'hue' in self._state[self._attr_key]:
+            # Only the information for the selected colormode is needed.
+            #   http://www.developers.meethue.com/documentation/lights-api
+            # colormode is not set directly; follows priority xy > ct > hs.
+            # xy is default; is it more accurate to send hs-converted rgb?
+            self.rgb = None
+            rgb = [255, 255, 255]
+            self.ct = MIREDS_MIN
+            self.xy = rgb_to_xy(rgb)
+            self.hue, self.sat, self.bri = rgb_to_hsb(rgb)
         # Turns on the light because:
         #   http://www.developers.meethue.com/documentation/lights-api
         # A light cannot have its hue, saturation, brightness, effect, ct or
@@ -895,22 +901,23 @@ class Luminous(HueResource):
         Returns:
             Returns data object prepared for API request.
         """
-        # Conform object attributes to valid ranges/values.
-        if self.rgb:
-            # should 0,0,0 turn the light off?
-            if list(self.rgb) == [0, 0, 0]:
-                self.on = False
-            elif hasattr(self, 'color_mode') and self.color_mode == 'hs':
-                self.hue, self.sat, self.bri = rgb_to_hsb(self.rgb)
+        if 'hue' in self._state[self._attr_key]:
+            # Conform object attributes to valid ranges/values.
+            if self.rgb:
+                # should 0,0,0 turn the light off?
+                if list(self.rgb) == [0, 0, 0]:
+                    self.on = False
+                elif hasattr(self, 'color_mode') and self.color_mode == 'hs':
+                    self.hue, self.sat, self.bri = rgb_to_hsb(self.rgb)
+                else:
+                    self.xy = rgb_to_xy(self.rgb)
+                self.rgb = None
             else:
-                self.xy = rgb_to_xy(self.rgb)
-            self.rgb = None
-        else:
-            self.xy = validate_xy(self.xy)
-        LOGGER.debug('hsb = %s %s %s', self.hue, self.sat, self.bri)
-        self.ct = constrain_value(self.ct, MIREDS_MIN, MIREDS_MAX)
-        self.hue = constrain_value(self.hue, 0, HUE_MAX)
-        self.sat = constrain_value(self.sat, 0, SAT_MAX)
+                self.xy = validate_xy(self.xy)
+            LOGGER.debug('hsb = %s %s %s', self.hue, self.sat, self.bri)
+            self.ct = constrain_value(self.ct, MIREDS_MIN, MIREDS_MAX)
+            self.hue = constrain_value(self.hue, 0, HUE_MAX)
+            self.sat = constrain_value(self.sat, 0, SAT_MAX)
         self.bri = constrain_value(self.bri, 0, BRI_MAX)
         if self.transitiontime is not None:
             self.transitiontime = int(round(self.transitiontime))
@@ -961,8 +968,7 @@ class Light(Luminous):
     """Light object.
     """
     def __init__(self, parent_bridge, res_id):
-        """:w
-
+        """
         """
         self.alert = None
         # These cannot be set, only read:
@@ -977,8 +983,9 @@ class Light(Luminous):
         """
         super(Light, self).refresh()
         self.alert = hue_decode(self._state['state']['alert'])
-        self.color_mode = self._state['state']['colormode']
         self.is_reachable = self._state['state']['reachable']
+        if 'colormode' in self._state['state']:
+            self.color_mode = self._state['state']['colormode']
         # attributes
         self.modelid = hue_decode(self._state['modelid'])
         self.swversion = hue_decode(self._state['swversion'])
@@ -1020,8 +1027,8 @@ class Group(Luminous):
         """Refreshes local attributes with actual values.
         """
         super(Group, self).refresh()
-        lights = [int(l_id) for l_id in self._state['lights']]
-        self.lights = self._bridge.get_lights(lights)
+        light_ids = [int(light_id) for light_id in self._state['lights']]
+        self.lights = self._bridge.get_lights(light_ids)
         # scenes are really just stored on light.  Why is this provided?
         #self.scenes = [str(s_id) for s_id in self._state['scenes']]
 
@@ -1187,6 +1194,13 @@ class Sensor(HueResource):
         for attr in self._state:
             if hasattr(self, attr):
                 setattr(self, attr, hue_decode(self._state[attr]))
+
+
+def debug(loglevel='DEBUG'):
+    """Start library logging manually (for interactive shell testing).
+    """
+    loglevel = getattr(logging, loglevel)
+    logging.basicConfig(level=loglevel)
 
 
 def _get_from_pool(pool, *args):
@@ -1501,13 +1515,6 @@ def hue_decode(value):
     return return_value
 
 
-def debug(loglevel='DEBUG'):
-    """Start library logging manually (for interactive shell testing).
-    """
-    loglevel = getattr(logging, loglevel)
-    logging.basicConfig(level=loglevel)
-
-
 def wait(delay=COMPLETION_DELAY):
     """Sleeps for a given amount of time.
 
@@ -1520,7 +1527,7 @@ def wait(delay=COMPLETION_DELAY):
 if __name__ == '__main__':
     import argparse
 
-    debug_log()
+    debug()
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--bridge', help='Bridge IP address.')
