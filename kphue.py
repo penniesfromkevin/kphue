@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """My take on a Hue library.
 
-This code borrows heavily from phue by Nathanaël Lécaudé.
+This code borrows somewhat from phue by Nathanaël Lécaudé.
 https://github.com/studioimaginaire/phue
 
 This software is provided under the MIT license (see LICENSE file).
