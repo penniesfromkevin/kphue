@@ -9,9 +9,9 @@ This software is provided under the MIT license (see LICENSE file).
 "Hue Personal Wireless Lighting" is a trademark owned by
 Koninklijke Philips Electronics N.V.
 """
-__author__ = 'Kevin Park (penniesfromkevin@yahoo)'
+__author__ = 'Kevin Park (penniesfromkevin at yahoo)'
 __version__ = '0.1.3'
-__copyright__ = 'Copyright (c) 2014, Kevin Park (penniesfromkevin@yahoo)'
+__copyright__ = 'Copyright (c) 2014, Kevin'
 
 import collections
 import json
